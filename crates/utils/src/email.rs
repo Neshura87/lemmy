@@ -78,11 +78,7 @@ pub fn send_email(
   };
 
   // Set the creds if they exist
-  let smtp_password = std::env::var("LEMMY_SMTP_PASSWORD")
-    .ok()
-    .or(email_config.smtp_password);
-
-  if let (Some(username), Some(password)) = (email_config.smtp_login, smtp_password) {
+  if let (Some(username), Some(password)) = (email_config.smtp_login, email_config.smtp_password) {
     builder = builder.credentials(Credentials::new(username, password));
   }
 

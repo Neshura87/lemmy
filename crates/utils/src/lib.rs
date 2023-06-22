@@ -14,11 +14,20 @@ pub mod request;
 pub mod utils;
 pub mod version;
 
-use std::time::Duration;
+use std::{fmt, time::Duration};
 
 pub type ConnectionId = usize;
 
 pub const REQWEST_TIMEOUT: Duration = Duration::from_secs(10);
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub struct IpAddr(pub String);
+
+impl fmt::Display for IpAddr {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.0)
+  }
+}
 
 #[macro_export]
 macro_rules! location_info {

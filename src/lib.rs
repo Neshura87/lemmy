@@ -63,8 +63,6 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     return Ok(());
   }
 
-  let scheduled_tasks_enabled = args.get(1) != Some(&"--disable-scheduled-tasks".to_string());
-
   let settings = SETTINGS.to_owned();
 
   // Run the DB migrations
@@ -121,28 +119,21 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     .with(TracingMiddleware::default())
     .build();
 
-  let context = LemmyContext::create(
-    pool.clone(),
-    client.clone(),
-    secret.clone(),
-    rate_limit_cell.clone(),
-  );
-
-  if scheduled_tasks_enabled {
-    // Schedules various cleanup tasks for the DB
-    thread::spawn({
-      let context = context.clone();
-      move || {
-        scheduled_tasks::setup(db_url, user_agent, context)
-          .expect("Couldn't set up scheduled_tasks");
-      }
-    });
-  }
+  // Schedules various cleanup tasks for the DB
+  thread::spawn(move || {
+    scheduled_tasks::setup(db_url, user_agent).expect("Couldn't set up scheduled_tasks");
+  });
 
   // Create Http server with websocket support
   let settings_bind = settings.clone();
   HttpServer::new(move || {
-    let context = context.clone();
+    let context = LemmyContext::create(
+      pool.clone(),
+      client.clone(),
+      secret.clone(),
+      rate_limit_cell.clone(),
+    );
+
     let federation_config = FederationConfig::builder()
       .domain(settings.hostname.clone())
       .app_data(context.clone())
@@ -158,17 +149,11 @@ pub async fn start_lemmy_server() -> Result<(), LemmyError> {
     let cors_config = if cfg!(debug_assertions) {
       Cors::permissive()
     } else {
-      let cors_origin = std::env::var("LEMMY_CORS_ORIGIN").unwrap_or("http://localhost".into());
       Cors::default()
-        .allowed_origin(&cors_origin)
-        .allowed_origin(&settings.get_protocol_and_hostname())
     };
 
     App::new()
-      .wrap(middleware::Logger::new(
-        // This is the default log format save for the usage of %{r}a over %a to guarantee to record the client's (forwarded) IP and not the last peer address, since the latter is frequently just a reverse proxy
-        "%{r}a '%r' %s %b '%{Referer}i' '%{User-Agent}i' %T",
-      ))
+      .wrap(middleware::Logger::default())
       .wrap(cors_config)
       .wrap(TracingLogger::<QuieterRootSpanBuilder>::new())
       .app_data(Data::new(context))

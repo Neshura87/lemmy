@@ -196,10 +196,7 @@ pub fn post_to_comment_sort_type(sort: SortType) -> CommentSortType {
     SortType::Active | SortType::Hot => CommentSortType::Hot,
     SortType::New | SortType::NewComments | SortType::MostComments => CommentSortType::New,
     SortType::Old => CommentSortType::Old,
-    SortType::TopHour
-    | SortType::TopSixHour
-    | SortType::TopTwelveHour
-    | SortType::TopDay
+    SortType::TopDay
     | SortType::TopAll
     | SortType::TopWeek
     | SortType::TopYear

@@ -3,6 +3,7 @@ use actix_web::web::Data;
 use lemmy_api_common::{
   context::LemmyContext,
   person::{VerifyEmail, VerifyEmailResponse},
+  utils::send_email_verification_success,
 };
 use lemmy_db_schema::{
   source::{
@@ -11,6 +12,7 @@ use lemmy_db_schema::{
   },
   traits::Crud,
 };
+use lemmy_db_views::structs::LocalUserView;
 use lemmy_utils::error::LemmyError;
 
 #[async_trait::async_trait(?Send)]
@@ -32,6 +34,10 @@ impl Perform for VerifyEmail {
     let local_user_id = verification.local_user_id;
 
     LocalUser::update(context.pool(), local_user_id, &form).await?;
+
+    let local_user_view = LocalUserView::read(context.pool(), local_user_id).await?;
+
+    send_email_verification_success(&local_user_view, context.settings())?;
 
     EmailVerification::delete_old_tokens_for_local_user(context.pool(), local_user_id).await?;
 

@@ -27,7 +27,6 @@ use lemmy_api_common::{
   post::{CreatePost, EditPost, PostResponse},
 };
 use lemmy_db_schema::{
-  aggregates::structs::PostAggregates,
   newtypes::PersonId,
   source::{
     community::Community,
@@ -188,10 +187,6 @@ impl ActivityHandler for CreateOrUpdatePage {
       score: 1,
     };
     PostLike::like(context.pool(), &like_form).await?;
-
-    // Calculate initial hot_rank for post
-    PostAggregates::update_hot_rank(context.pool(), post.id).await?;
-
     Ok(())
   }
 }
