@@ -403,17 +403,6 @@ pub async fn send_verification_email(
   Ok(())
 }
 
-pub fn send_email_verification_success(
-  user: &LocalUserView,
-  settings: &Settings,
-) -> Result<(), LemmyError> {
-  let email = &user.local_user.email.clone().expect("email");
-  let lang = get_interface_language(user);
-  let subject = &lang.email_verified_subject(&user.person.actor_id);
-  let body = &lang.email_verified_body();
-  send_email(subject, email, &user.person.name, body, settings)
-}
-
 pub fn get_interface_language(user: &LocalUserView) -> Lang {
   lang_str_to_lang(&user.local_user.interface_language)
 }
@@ -511,7 +500,7 @@ pub async fn send_new_report_email_to_admins(
   for admin in &admins {
     let email = &admin.local_user.email.clone().expect("email");
     let lang = get_interface_language_from_settings(admin);
-    let subject = lang.new_report_subject(&settings.hostname, reporter_username, reported_username);
+    let subject = lang.new_report_subject(&settings.hostname, reported_username, reporter_username);
     let body = lang.new_report_body(reports_link);
     send_email(&subject, email, &admin.person.name, &body, settings)?;
   }
@@ -523,7 +512,8 @@ pub async fn check_registration_application(
   local_site: &LocalSite,
   pool: &DbPool,
 ) -> Result<(), LemmyError> {
-  if local_site.registration_mode == RegistrationMode::RequireApplication
+  if (local_site.registration_mode == RegistrationMode::RequireApplication
+    || local_site.registration_mode == RegistrationMode::Closed)
     && !local_user_view.local_user.accepted_application
     && !local_user_view.person.admin
   {
